@@ -1,0 +1,4 @@
+[script]
+
+[conda]
+packages = ["numpy", "numpy>=1.21", "python=3.7", "scipy"]
