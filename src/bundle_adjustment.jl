@@ -9,22 +9,22 @@ function bundle_adjustment!(
     poses_shift = n_poses * 6
 
     ignore_outliers = false
-    Y = zeros(Float64, n_observations * 2)
+    Y = zeros(Float64, n_observations * 2)  # residue,重投影误差
 
     function residue!(Y, X)
         poses = reshape(@view(X[1:poses_shift]), 6, n_poses)
         points = reshape(@view(X[(poses_shift + 1):end]), 3, n_points)
-
+        
         @simd for i in 1:n_observations
             id = (i - 1) * 2
             if ignore_outliers && cache.outliers[i]
                 Y[id + 1] = 0.0
                 Y[id + 2] = 0.0
             else
-                pt = @view(points[:, cache.points_ids[i]])
+                pt = @view(points[:, cache.points_ids[i]])  # 3d point
                 T = @view(poses[:, cache.poses_ids[i]])
-                pt = RotZYX(T[1:3]...) * pt .+ T[4:6] # (x, y, z) format.
-                px = @view(cache.pixels[:, i]) # (y, x) format.
+                pt = RotZYX(T[1:3]...) * pt .+ T[4:6] # (x, y, z) 齐次坐标. R*X+t重投影为2d point.
+                px = @view(cache.pixels[:, i]) # (y, x) format. 2d投影,gt
 
                 inv_z = 1.0 / pt[3]
                 Y[id + 1] = px[1] - (fy * pt[2] * inv_z + cy)

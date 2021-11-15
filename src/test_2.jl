@@ -18,10 +18,8 @@ include("frame.jl")
 include("estimator.jl")
 include("bundle_adjustment.jl")
 
-
 @py import sys
 sys.path.insert(0, Py("/home/zhangyong/codes/AutoCab.jl/src"))
-# println(sys.path)
 camera = pyimport("camera")
 np = pyimport("numpy")
 
@@ -98,8 +96,9 @@ end
 
 function ba_1()
     # local_ba
+    # map_manager是最顶层的对象了
 
-    cache = _get_ba_parameters(estimator.map_manager, new_frame, covisibility_map, estimator.params.min_cov_score)
+    cache = _get_ba_parameters(map_manager, covisibility_map, min_cov_score)
     
     bundle_adjustment!(cache, camera; show_trace=false)
  
@@ -115,5 +114,6 @@ camera_1()
 #=
 export JULIA_PYTHONCALL_EXE=/home/zhangyong/miniconda3/bin/python
 julia --project=/home/zhangyong/codes/AutoCab.jl/Project.toml /home/zhangyong/codes/AutoCab.jl/src/test_2.jl
+
 
 =#

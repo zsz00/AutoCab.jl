@@ -1,22 +1,21 @@
 
 struct Observation
     pixel::Point2f
-    point::Point3f
-    pose::NTuple{6, Float64}
-
+    point::Point3f   # 3d, 世界坐标系 
+    pose::NTuple{6, Float64}   # NTuple,长度为6个,类型都是Float64的Tuple
+    # camera_id::Int64
     point_order::Int64
-    pose_order::Int64
+    pose_order::Int64    # camera_id
 
     constant::Bool   # 不变的
-    in_covmap::Bool   # 
-
+    in_covmap::Bool   # 是否在不变3d点里
     kfid::Int64    # key frame id
     mpid::Int64    # map id
 end
 
 struct LocalBACache
     observations::Vector{Observation}
-    outliers::Vector{Bool} # same length as observations
+    outliers::Vector{Bool} # same length as observations. 异常值标志
 
     θ::Vector{Float64}
     θconst::Vector{Bool}
@@ -24,7 +23,6 @@ struct LocalBACache
 
     poses_ids::Vector{Int64}
     points_ids::Vector{Int64}
-
     poses_remap::Vector{Int64} # order id → kfid
     points_remap::Vector{Int64} # order id → mpid
 end
@@ -39,62 +37,16 @@ function LocalBACache(
         poses_ids, points_ids, poses_remap, points_remap)
 end
 
-"""
-Estimator 负责执行 ba和map过滤
-"""
-mutable struct Estimator
-    map_manager::MapManager
-    params::Params
-
-    frame_queue::Vector{Frame}
-    new_kf_available::Bool
-    exit_required::Bool
-end
-
-function Estimator(map_manager::MapManager, params::Params)
-    Estimator(map_manager, params, Frame[], false, false)
-end
-
-"""
-启动Estimator的主程序.
-在mapper.Mapper()里被调用
-"""
-function run!(estimator::Estimator)
-    while !estimator.exit_required
-        new_kf = get_new_kf!(estimator)
-        local_bundle_adjustment!(estimator, new_kf)
-    end
-end
-
-function add_new_kf!(estimator::Estimator, frame::Frame)
-    push!(estimator.frame_queue, frame)
-    estimator.new_kf_available = true
-end
-
-
-function get_new_kf!(estimator::Estimator)
-    if isempty(estimator.frame_queue)
-        estimator.new_kf_available = false
-        return nothing
-    end
-
-    # TODO if more than 1 frame in queue, add them to ba anyway.
-    estimator.new_kf_available = false
-    kf = popfirst!(estimator.frame_queue)
-    kf
-end
-
 function _get_ba_parameters(
-    map_manager::MapManager, frame::Frame,
-    covisibility_map::OrderedDict{Int64, Int64}, min_cov_score,
+    map_manager::MapManager, covisibility_map::OrderedDict{Int64, Int64}, min_cov_score,
 )
-    # poses: kfid → (order id, θ).
+    # poses: kfid → (order id, θ).  所有的poses
     poses = Dict{Int64, Tuple{Int64, NTuple{6, Float64}}}()
     constant_poses = Set{Int64}()   # 常量pose
     # map_points: mpid → (order id, point).
     map_points = Dict{Int64, Tuple{Int64, Point3f}}()
 
-    processed_keypoints_ids = Set{Int64}()  # 处理过的关键点
+    processed_keypoints_ids = Set{Int64}()  # 处理过的3d关键点
 
     observations = Vector{Observation}(undef, 0) # 观测值
     poses_remap = Vector{Int64}(undef, 0)   # 重映射id
@@ -118,17 +70,15 @@ function _get_ba_parameters(
             kpid in processed_keypoints_ids && continue
             push!(processed_keypoints_ids, kpid)
 
-            mp = get_mappoint(map_manager, kpid)  # 3d point
+            mp = get_mappoint(map_manager, kpid)  # 3d point, 世界坐标
  
             mp_order_id = length(map_points) + 1   # 顺序id
-            mp_position = get_position(mp)  # 3d点的坐标
+            mp_position = get_position(mp)  # 3d点的坐标, 世界坐标系的
             map_points[kpid] = (mp_order_id, mp_position)   # 3d dict
             push!(points_remap, kpid)
 
             # For each observer, add observation: px ← (mp, pose).
             for ob_kfid in get_observers(mp)   # 每个3d点对应的所有相机投影点
-                ob_kfid > frame.kfid && continue
-
                 ob_frame = get_keyframe(map_manager, ob_kfid)
                 ob_pixel = get_keypoint_unpx(ob_frame, kpid)
 
@@ -142,7 +92,7 @@ function _get_ba_parameters(
                 if in_processed
                     pose_order_id, ob_pose = poses[ob_kfid]
                 else
-                    ob_pose = get_cw_ba(ob_frame)  # 获取到ob_frame的 pose:r_vec,t
+                    ob_pose = get_cw_ba(ob_frame)  # 获取到 camera的 pose:r_vec,t
                     pose_order_id = length(poses) + 1
                     poses[ob_kfid] = (pose_order_id, ob_pose)
 
@@ -210,23 +160,20 @@ function _update_ba_parameters!(map_manager::MapManager, cache::LocalBACache, cu
 
 end
 
+function local_bundle_adjustment!(map_manager::MapManager, new_frame::Frame)
 
-function local_bundle_adjustment!(estimator::Estimator, new_frame::Frame)
-
-    estimator.params.local_ba_on = true
     covisibility_map = get_covisible_map(new_frame)   # 可改的map/3d点
-    covisibility_map[new_frame.kfid] = new_frame.nb_3d_kpts
+    covisibility_map[new_frame.kfid] = new_frame.nb_3d_kpts  # {kfid:3d点的数量}
 
     # Get up to 5 latest KeyFrames. 追赶最新的5个KeyFrames
     co_kfids = sort!(collect(keys(covisibility_map)); rev=true)
     co_kfids = co_kfids[1:min(5, length(co_kfids))]
     covisibility_map = OrderedDict{Int64, Int64}(kfid => covisibility_map[kfid] for kfid in co_kfids)
 
-    cache = _get_ba_parameters(estimator.map_manager, new_frame, covisibility_map, estimator.params.min_cov_score)
+    cache = _get_ba_parameters(map_manager, covisibility_map, min_cov_score)
     
     bundle_adjustment!(cache, new_frame.camera; show_trace=false)
 
-    _update_ba_parameters!(estimator.map_manager, cache, new_frame.kfid)
+    # _update_ba_parameters!(map_manager, cache, new_frame.kfid)
 
-    estimator.params.local_ba_on = false
 end

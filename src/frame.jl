@@ -53,8 +53,7 @@ Frame that encapsulates information of a camera in space at a certain moment.
 - `nb_2d_keypoints::Int64`: Total number of 2D keypoints in the Frame.
 - `nb_3d_keypoints::Int64`: Total number of 3D keypoints in the Frame.
 - `covisible_kf::OrderedDict{Int64, Int64}`: Dictionary with `kfid` => `score`
-    of ids of Frames that observe the sub-set of size `score` of keypoints
-    in Frame.
+    of ids of Frames that observe the sub-set of size `score` of keypoints in Frame.
 - `local_map_ids::Set{Int64}`: Set of ids of MapPoints that are not visible
     in this Frame, but are a potential candidates for remapping
     back into this Frame.
@@ -71,11 +70,11 @@ mutable struct Frame
     nb_occupied_cells::Int64
     cell_size::Int64
 
-    nb_keypoints::Int64
+    nb_keypoints::Int64 # Total number of keypoints in the Frame.
     nb_2d_kpts::Int64  # Total number of 2D keypoints in the Frame.
     nb_3d_kpts::Int64  # Total number of 3D keypoints in the Frame.
 
-    covisible_kf::OrderedDict{Int64, Int64}
+    covisible_kf::OrderedDict{Int64, Int64}   # 可变的kframe
     local_map_ids::Set{Int64}
 end
 

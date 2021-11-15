@@ -21,8 +21,8 @@ as well as Mappoints.
 mutable struct MapManager
     params::Params
     current_frame::Frame
-    frames_dict::Dict{Int64, Frame}
-    map_points_dict::Dict{Int64, MapPoint}   # 3d points 
+    frames_dict::Dict{Int64, Frame}   # 所有的frames
+    map_points_dict::Dict{Int64, MapPoint}   # 所有的3d points 
     
     current_mappoint_id::Int64
     current_keyframe_id::Int64
@@ -206,6 +206,7 @@ function merge_mappoints(m::MapManager, prev_id, new_id)
     end
 end
 
+# 光流匹配
 function optical_flow_matching!(
     map_manager::MapManager, frame::Frame,
     from_pyramid::LKPyramid, to_pyramid::LKPyramid, stereo,

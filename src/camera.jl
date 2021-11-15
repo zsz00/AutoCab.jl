@@ -140,7 +140,6 @@ function backproject(c::Camera, point::Point2)
 end
 
 
-
 function set_wc!(c::Camera, wc, visualizer = nothing)
     c.wc = wc
     c.cw = inv(SE3, wc)
