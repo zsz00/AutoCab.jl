@@ -35,29 +35,20 @@ end
 @inbounds to_makie(positions) = [Point3f0(p[1], p[3], p[2]) for p in positions]
 
 struct CampusDataset
-    """
-    Left camera (aka P0) intrinsic matrix.
-    Dropped last column, which contains baselines in meters.
-    """
+    # Left camera (aka P0) intrinsic matrix. Dropped last column, which contains baselines in meters.
     Ks::Dict
-    """
-    Transformation from 0-th camera to 1-st camera.
-    """
+    # Transformation from 0-th camera to 1-st camera.
     Ti0::SMatrix{4, 4, Float64, 16}
-    """
-    Ground truth poses. Each pose transforms from the origin.
-    """
+    # Ground truth poses. Each pose transforms from the origin.
     poses::Vector{SMatrix{4, 4, Float64, 16}}
-    """
-    Vector of timestamps for each frame.
-    """
+    # Vector of timestamps for each frame.
     timestamps::Vector{Float64}
     left_frames_dir::String
     right_frames_dir::String
     stereo::Bool
 end
 
-function CampusDataset(base_dir::String, sequence::String; stereo::Bool)
+function CampusDataset(base_dir::String, sequence::String; stereo::Bool=false)
     frames_dir = base_dir
 
     Ks = JSON3.read(joinpath(base_dir, "calibration_campus.json"))
@@ -96,4 +87,25 @@ function get_camera_poses(dataset::CampusDataset)
 end
 
 
+function collect_frames()
+    while 1
+        for cam_id in range(camera_num)
+            image = None
+            if self.output_image
+                image_name = self._gen_image_name(cam_id=cam_id, this_timestamp=this_timestamp)
+                image_name = os.path.join(self.root_dir, image_name)
+                # image = cv2.imread(image_name)
+                image = image_name  # cv2.imread(image_name)
+            end
+            pose_dict = dict()
+            pose_dict_3d = dict()
+        end
+
+    end
+end
+
+function _gen_image_name(cam_id, timestamp)
+    image_name = "Camera{0:d}/campus4-c{0:d}-{1:05d}.png".format(cam_id, timestamp)
+    return image_name
+end
 

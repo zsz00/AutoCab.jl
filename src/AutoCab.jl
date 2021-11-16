@@ -2,7 +2,7 @@ module AutoCab
 export CabManager, add_image!, add_stereo_image!, get_queue_size
 export Params, Camera, run!, to_cartesian, reset!
 export Visualizer, ReplaySaver
-export set_frame_wc!, process_frame_wc!, set_image!, set_position!
+export set_image!, set_position!
 
 using BSON: @save, @load
 using OrderedCollections: OrderedSet, OrderedDict
@@ -151,19 +151,6 @@ function get_image!(sm::CabManager)
     image, time
 end
 
-function get_queue_size(sm::CabManager)
-    length(sm.image_queue)
-end
-
-function reset!(sm::CabManager)
-    @warn "[Cab Manager] Reset required."
-    sm.params |> reset!
-    sm.current_frame |> reset!
-    sm.front_end |> reset!
-    sm.map_manager |> reset!
-    @warn "[Cab Manager] Reset applied."
-end
-
 function draw_keypoints!(
     image::Matrix{T}, frame::Frame; right::Bool = false,
 ) where T <: RGB
@@ -182,3 +169,6 @@ function draw_keypoints!(
 end
 
 end
+
+# AutoCab.run!(mapper) -> mapper.triangulate_temporal -> estimator.local_bundle_adjustment! -> bundle_adjustment
+

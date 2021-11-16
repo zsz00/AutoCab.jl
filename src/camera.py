@@ -174,3 +174,29 @@ def get_r_error(r1, r2):
     r2 = r2.reshape(1, 3, 3)
     degrees = Error_R(r1, r2)
     return degrees
+
+
+def get_gt():
+    print('================== camera_info gt ==================')
+    json_path = '../images/bascat_cams/testall.json'
+    with open(json_path) as file:
+        camera_info = json.load(file)
+    # print(camera_info['cameras'][16])
+    cam_15 = camera_info['cameras'][15]['pmat']
+    cam_16 = camera_info['cameras'][16]['pmat']
+
+    cam_15 = np.array(cam_15).reshape(3, 4)
+    cam_16 = np.array(cam_16).reshape(3, 4)
+    R_15, t_15 = cam_15[0:3, 0:3], cam_15[0:3, 3]
+    R_16, t_16 = cam_16[0:3, 0:3], cam_16[0:3, 3]
+    # print(R_15, t_15)
+    info, angle = get_euler_angle(R_15)
+    print('r_15:', info, 't_15:', t_15.reshape(1, 3))
+    info, angle = get_euler_angle(R_16)
+    print('r_16:', info, 't_16:', t_16.reshape(1, 3))
+    r_mat_rel = np.dot(R_15, R_16.T)
+    info, angle = get_euler_angle(r_mat_rel)  # cam_16--> cam_15
+    print('r_rel:', info, 't_rel:', (t_15 - t_16).reshape(1, 3), 't_rel_norm', normalize((t_15 - t_16).reshape(1, 3)))
+    print("r_mat_rel:", r_mat_rel)
+    return camera_info
+    

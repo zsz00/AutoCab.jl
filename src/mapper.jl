@@ -34,9 +34,7 @@ function run!(mapper::Mapper)
 
         if new_keyframe.nb_2d_kpts > 0 && new_keyframe.kfid > 0
             # 三角测量法得到 3D point. 
-            triangulate_temporal!(
-                mapper.map_manager, new_keyframe,
-                mapper.params.max_reprojection_error)
+            triangulate_temporal!(mapper.map_manager, new_keyframe, mapper.params.max_reprojection_error)
         end
 
         update_frame_covisibility!(mapper.map_manager, new_keyframe)
@@ -75,9 +73,9 @@ function triangulate_temporal!(map_manager::MapManager, frame::Frame, max_error)
         map_point.is_3d && continue
 
         # Get first KeyFrame id from the set of mappoint observers.
-        observers = get_observers(map_point)
+        observers = get_observers(map_point)  # 获取此3d点的所有观测frames
         length(observers) < 2 && continue
-        kfid = observers[1]
+        kfid = observers[1]  # 只取第一个
         observer_kf = get_keyframe(map_manager, kfid)
 
         # Compute relative motion between new KF & observer KF.

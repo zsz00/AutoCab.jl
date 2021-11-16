@@ -1,31 +1,21 @@
+
 mutable struct MapPoint
     id::Int64   # id of 3d mappoint
     kfid::Int64   # Id of the KeyFrame, from which it was created.
     point_type::Int64  # person landmark, 物体sift
-
     # Set of KeyFrame's ids that are visible from this MapPoint.
     observer_keyframes_ids::OrderedSet{Int64}
-    descriptor::BitVector   # Mean descriptor.
-    keyframes_descriptors::Dict{Int64, BitVector}
-    # Descriptor distances to each KeyFrame. kfid => hamming_distance.
-    descriptor_distances_map::Dict{Int64, Float64}
     position::Point3f   # Position in world coordinate system.
     is_3d::Bool   # True if the MapPoint has been initialized.
-    # True if the MapPoint is visible in the current Frame.
-    is_observed::Bool
+    is_observed::Bool  # True if the MapPoint is visible in the current Frame.
 end
 
-function MapPoint(id, kfid, descriptor, is_observed::Bool = true)
+function MapPoint(id, kfid, is_observed::Bool = true)
     observed_keyframes_ids = OrderedSet{Int64}(kfid)
-    keyframes_descriptors = Dict{Int64, BitVector}(kfid => descriptor)
-    descriptor_distances_map = Dict{Int64, Float64}(kfid => 0.0)
     position = Point3f(0, 0, 0)
     is_3d = false
-    point_type = 1
-    MapPoint(
-        id, kfid, point_type, observed_keyframes_ids,
-        descriptor, keyframes_descriptors, descriptor_distances_map,
-        position, is_3d, is_observed)
+    point_type = 1  # person landmark
+    MapPoint(id, kfid, point_type, observed_keyframes_ids, position, is_3d, is_observed)
 end
 
 @inline is_valid(m::MapPoint)::Bool = m.id != -1

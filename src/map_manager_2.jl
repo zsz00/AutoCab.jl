@@ -2,24 +2,8 @@
 Map Manager is responsible for managing Keyframes in the map
 as well as Mappoints.
 地图管理器负责管理地图中的关键帧以及地图点.
-
-# Arguments:
-
-- `current_frame::Frame`: Current frame that is shared throughout
-    all the components in the system.
-- `frames_dict::Dict{Int64, Frame}`: Dict of the Keyframes (its id → Keyframe).
-- `params::Params`: Parameters of the system.
-- `map_points_dict::Dict{Int64, MapPoint}`: Map of all the map_points
-    (its id → MapPoints).
-- `current_mappoint_id::Int64`: Id of the current Mappoint to be created.
-    It is incremented each time a new Mappoint is added to `map_points`.
-- `current_keyframe_id::Int64`: Id of the current Keyframe to be created.
-    It is incremented each time a new Keyframe is added to `frames_map`.
-- `nb_keyframes::Int64`: Total number of keyframes.
-- `nb_mappoints::Int64`: Total number of mappoints.
 """
 mutable struct MapManager
-    params::Params
     current_frame::Frame
     frames_dict::Dict{Int64, Frame}   # 所有的frames
     map_points_dict::Dict{Int64, MapPoint}   # 所有的3d points 
@@ -30,23 +14,8 @@ mutable struct MapManager
     nb_mappoints::Int64
 end
 
-function MapManager(params::Params, frame::Frame)
-    MapManager(
-        params, frame, Dict{Int64, Frame}(), 
-        Dict{Int64, MapPoint}(), 0, 0, 0, 0)
-end
-
-
-function get_keyframe(m::MapManager, kfid)
-    get(m.frames_dict, kfid, nothing)
-end
-
-function has_keyframe(m::MapManager, kfid)
-    kfid in keys(m.frames_dict)
-end
-
-function get_mappoint(m::MapManager, mpid)
-    get(m.map_points_dict, mpid, nothing)
+function MapManager(frame::Frame)
+    MapManager(frame, Dict{Int64, Frame}(), Dict{Int64, MapPoint}(), 0, 0, 0, 0)
 end
 
 function create_keyframe!(m::MapManager, image)
@@ -59,11 +28,6 @@ end
 function prepare_frame!(m::MapManager)
     m.current_frame.kfid = m.current_keyframe_id
     @debug "[MM] Adding KF $(m.current_frame.kfid) to Map."
-
-    # Filter if there are too many keypoints.
-    # if m.current_frame.nb_keypoints > m.params.max_nb_keypoints
-    #     # TODO
-    # end
 
     for kp in values(m.current_frame.keypoints)
         mp = get(m.map_points_dict, kp.id, nothing)
@@ -170,7 +134,7 @@ function merge_mappoints(m::MapManager, prev_id, new_id)
         new_mp ≡ nothing && return
         new_mp.is_3d || return
 
-        prev_observers = get_observers(prev_mp)
+        prev_observers = get_observers(prev_mp)  # 取出此3d点的所有 观测frames id
         new_observers = get_observers(new_mp)
 
         # For previous mappoint observers, update keypoint for them.
@@ -202,115 +166,7 @@ function merge_mappoints(m::MapManager, prev_id, new_id)
         pop!(m.map_points_dict, prev_id)
     catch e
         showerror(stdout, e); println()
-        display(stacktrace(catch_backtrace())); println()
     end
 end
 
-# 光流匹配
-function optical_flow_matching!(
-    map_manager::MapManager, frame::Frame,
-    from_pyramid::LKPyramid, to_pyramid::LKPyramid, stereo,
-)
-    window_size = map_manager.params.window_size
-    max_distance = map_manager.params.max_ktl_distance
-    pyramid_levels = map_manager.params.pyramid_levels
 
-    pyramid_levels_3d = 1
-    ids = Vector{Int64}(undef, frame.nb_keypoints)
-    pixels = Vector{Point2f}(undef, frame.nb_keypoints)
-
-    ids3d = Vector{Int64}(undef, frame.nb_3d_kpts)
-    pixels3d = Vector{Point2f}(undef, frame.nb_3d_kpts)
-    displacements3d = Vector{Point2f}(undef, frame.nb_3d_kpts)
-
-    i, i3d = 1, 1
-    scale = 1.0 / 2.0^pyramid_levels_3d
-    n_good = 0
-
-    keypoints = stereo ? get_keypoints(frame) : values(frame.keypoints)
-    for kp in keypoints
-        if !kp.is_3d
-            pixels[i] = kp.pixel
-            ids[i] = kp.id
-            i += 1
-            continue
-        end
-
-        mp = stereo ?
-            get_mappoint(map_manager, kp.id) :
-            map_manager.map_points_dict[kp.id]
-        if mp ≡ nothing
-            remove_mappoint_obs!(map_manager, kp.id, frame.kfid)
-            continue
-        end
-
-        position = get_position(mp)
-        projection = stereo ?
-            project_world_to_right_image_distort(frame, position) :
-            project_world_to_image_distort(frame, position)
-
-        if stereo
-            if in_right_image(frame, projection)
-                ids3d[i3d] = kp.id
-                pixels3d[i3d] = kp.pixel
-                displacements3d[i3d] = scale .* (projection .- kp.pixel)
-                i3d += 1
-            else
-                remove_mappoint_obs!(map_manager, kp.id, frame.kfid)
-                continue
-            end
-        else
-            if in_image(frame, projection)
-                ids3d[i3d] = kp.id
-                pixels3d[i3d] = kp.pixel
-                displacements3d[i3d] = scale .* (projection .- kp.pixel)
-                i3d += 1
-            end
-        end
-    end
-
-    i3d -= 1
-    ids3d = @view(ids3d[1:i3d])
-    pixels3d = @view(pixels3d[1:i3d])
-    displacements3d = @view(displacements3d[1:i3d])
-
-    failed_3d = true
-    if !isempty(ids3d)
-        new_keypoints, status = fb_tracking!(
-            from_pyramid, to_pyramid, pixels3d;
-            displacement=displacements3d,
-            pyramid_levels=pyramid_levels_3d,
-            window_size, max_distance)
-
-        nb_good = 0
-        for j in 1:length(status)
-            if status[j]
-                update_keypoint!(frame, ids3d[j], new_keypoints[j])
-                nb_good += 1
-            else
-                # If failed → add to track with 2d keypoints w/o prior.
-                pixels[i] = pixels3d[j]
-                ids[i] = ids3d[j]
-                i += 1
-            end
-        end
-        @debug "[MM] 3D Points tracked $nb_good. Stereo $stereo."
-        failed_3d = nb_good < 0.33 * length(ids3d)
-    end
-
-    i -= 1
-    pixels = @view(pixels[1:i])
-    ids = @view(ids[1:i])
-
-    isempty(pixels) && return nothing
-    new_keypoints, status = fb_tracking!(
-        from_pyramid, to_pyramid, pixels;
-        pyramid_levels, window_size, max_distance)
-
-    for j in 1:length(new_keypoints)
-        status[j] ? update_keypoint!(frame, ids[j], new_keypoints[j]) :
-                remove_obs_from_current_frame!(map_manager, ids[j])
-
-    end
-    nothing
-end

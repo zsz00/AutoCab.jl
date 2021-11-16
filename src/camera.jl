@@ -48,7 +48,7 @@ function Camera(
     iK = K |> inv
 
     Camera(id, fx, fy, cx, cy, k1, k2, p1, p2,
-           K, iK, height, width, Ti0, inv(SE3, Ti0))
+           K, iK, height, width, Ti0, inv(SE3, Ti0), Ti0, Ti0)
 end
 
 """
@@ -143,13 +143,13 @@ end
 function set_wc!(c::Camera, wc, visualizer = nothing)
     c.wc = wc
     c.cw = inv(SE3, wc)
-    visualizer ≢ nothing && set_frame_wc!(visualizer, c.id, c.wc)
+    visualizer ≢ nothing
 end
 
 function set_cw!(c::Camera, cw, visualizer = nothing)
     c.cw = cw
     c.wc = inv(SE3, cw)   # 用李群李代数 来做这个变换. 
-    visualizer ≢ nothing && set_frame_wc!(visualizer, c.id, c.wc)
+    visualizer ≢ nothing
 end
 
 function get_cw(c::Camera)

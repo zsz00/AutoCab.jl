@@ -57,7 +57,6 @@ function main(n_frames)
 
         if visualizer ≢ nothing
             CAB.set_image!(visualizer, rotr90(left_frame))
-            process_frame_wc!(visualizer)
         end
 
         q_size = get_queue_size(slam_manager)

@@ -41,12 +41,19 @@ function camera_1()
     println(size(objpoints), size(previous_pts))
     println(objpoints[11,:,:], previous_pts[11,:,:])
     println(distCoeffs)
-    # return
-    cam = Camera(
+    cameras = Vector{Camera}()
+    cam_1 = Camera(
                 1, K[1,1], K[2,2], K[1,3], K[2,3], # Intrinsics.
                 distCoeffs[1], distCoeffs[2], distCoeffs[3], distCoeffs[4], # Distortion coefficients.
                 2048, 2448
     )
+    cam_2 = Camera(
+                2, K[1,1], K[2,2], K[1,3], K[2,3], # Intrinsics.
+                distCoeffs[1], distCoeffs[2], distCoeffs[3], distCoeffs[4], # Distortion coefficients.
+                2048, 2448
+    )
+    cameras = [cam_1, cam_2]
+
     previous_points = Vector{Point2f}(undef, length(imgpoints[0]))
     current_points = Vector{Point2f}(undef, length(imgpoints[0]))
     previous_pd = Vector{Point2f}(undef, length(imgpoints[0]))  # 归一化的, predivided by K^-1 
@@ -56,8 +63,8 @@ function camera_1()
         # Convert points to `(x, y)` format as expected by five points.
         previous_points[i] = Point2f(previous_pts[i,:,:]) 
         current_points[i] = Point2f(current_pts[i,:,:])
-        previous_pd[i] = Point2f(backproject(cam, previous_points[i])[[1, 2]]) 
-        current_pd[i] = Point2f(backproject(cam, current_points[i])[[1, 2]])
+        previous_pd[i] = Point2f(backproject(cam_1, previous_points[i])[[1, 2]]) 
+        current_pd[i] = Point2f(backproject(cam_1, current_points[i])[[1, 2]])
     end
     println("==========: ", previous_points[11])
     println("==========: ", previous_pd[11])
@@ -76,7 +83,9 @@ function camera_1()
     println("E: ", E)
     println("R: ", R)
     println("t: ", t)
-
+    
+    cameras[2].Ti0 = P
+    
     r_mat_rel_gt = Array([[9.99832519e-01, -1.82957663e-02, -4.45082354e-04],
                           [1.82940228e-02, 9.99825994e-01, -3.64845807e-03],
                           [5.11756243e-04, 3.63970467e-03, 9.99993245e-01]])
@@ -86,6 +95,7 @@ function camera_1()
     degrees = camera.get_r_error(R, r_mat_rel_gt)
     println(info)
     println("degrees:", degrees)
+    return previous_points, current_points, cameras
 end
 
 function backproject(c::Camera, point::Point2f)
@@ -97,6 +107,7 @@ end
 function ba_1()
     # local_ba
     # map_manager是最顶层的对象了
+    dataset = CampusDataset(base_dir, sequence; stereo)
 
     cache = _get_ba_parameters(map_manager, covisibility_map, min_cov_score)
     
@@ -105,8 +116,41 @@ function ba_1()
 end
 
 
+function get_observations(imgpoints, cameras)
+    # imgpoints是 成对的匹配点
+    K = to_4x4(camera.K)
+    # P1 - previous Keyframe, P2 - this `frame`.
+    P1 = K * SMatrix{4, 4, Float64, 16}(I)
+    P2 = K * SMatrix{4, 4, Float64, 16}(I)
 
-camera_1()
+    observations = []
+    for 2d_pint in imgpoints
+        
+        left_point = triangulate(obup[[2, 1]], kpup[[2, 1]], P1, P2)  # 2d->3d点, 齐次的. 相机坐标的
+        left_point *= 1.0 / left_point[4]
+        wpt = project_camera_to_world(cameras[2], left_point)[1:3]  # 相机坐标系到世界坐标系
+        mp_position = wpt
+
+        # observation = Observation(ob_pixel, mp_position, ob_pose, mp_order_id, 
+        #                           pose_order_id, is_constant, in_covmap, ob_kfid, kpid)
+        # push!(observations, observation)
+
+    end
+    
+    return observations
+end
+
+function test_2()
+
+    previous_points, current_points, cameras = camera_1()
+
+    get_observations(imgpoints, cameras)
+
+end
+
+# camera_1()
+
+
 
 
 
