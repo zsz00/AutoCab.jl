@@ -6,7 +6,7 @@ Camera
 - `cw::SMatrix{4, 4, Float64, 16}`: Transformation matrix `[R|t]` that transforms from world to camera space.
 - `wc::SMatrix{4, 4, Float64, 16}`: Transformation matrix `[R|t]` that transforms from camera to world space.
 """
-struct Camera
+mutable struct Camera
     id::Int64
     # Focal length.
     fx::Float64
@@ -27,7 +27,7 @@ struct Camera
     height::Int64
     width::Int64
 
-    # Transformation from 0-th camera to i-th (this).
+    # Transformation from 0-th camera to i-th (this).  w to c
     Ti0::SMatrix{4,4,Float64,16}
     # Transformation from i-th (this) camera to 0-th.
     T0i::SMatrix{4,4,Float64,16}
@@ -62,8 +62,7 @@ Projected point in `(y, x)` format.
 """
 function project(c::Camera, point)
     inv_z = 1.0 / point[3]
-    Point2f(c.fy * point[2] * inv_z + c.cy,
-            c.fx * point[1] * inv_z + c.cx)
+    Point2f(c.fy * point[2] * inv_z + c.cy, c.fx * point[1] * inv_z + c.cx)
 end
 
 """

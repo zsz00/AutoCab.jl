@@ -1,21 +1,34 @@
 using StaticArrays
 using LinearAlgebra
 using Images
-using JSON3
+using JSON3, JLD2
 # using PyCall
 using PythonCall
 using RecoverPose
 using Rotations
 using Manifolds
+using OrderedCollections: OrderedSet, OrderedDict
 
 const Point2 = SVector{2}
 const Point2f = SVector{2, Float32}
 const Point3f = SVector{3, Float32}
 const SE3 = SpecialEuclidean(3)
 
+# 转换为齐次坐标
+@inline to_homogeneous(p::SVector{3, T}) where T = SVector{4, T}(p..., one(T))
+@inline to_homogeneous(p::SVector{4}) = p
+
+function to_4x4(m::SMatrix{3, 3, T, 9}) where T
+    SMatrix{4, 4, T}(
+        m[1, 1], m[2, 1], m[3, 1], 0,
+        m[1, 2], m[2, 2], m[3, 2], 0,
+        m[1, 3], m[2, 3], m[3, 3], 0,
+        0,       0,       0,       1)
+end
+
 include("camera.jl")
 include("frame.jl")
-include("estimator.jl")
+include("estimator_2.jl")
 include("bundle_adjustment.jl")
 
 @py import sys
@@ -84,17 +97,20 @@ function camera_1()
     println("R: ", R)
     println("t: ", t)
     
-    cameras[2].Ti0 = P
+    cameras[2].Ti0 = vcat(P, [0 0 0 1.0])  # 0->i
     
     r_mat_rel_gt = Array([[9.99832519e-01, -1.82957663e-02, -4.45082354e-04],
                           [1.82940228e-02, 9.99825994e-01, -3.64845807e-03],
                           [5.11756243e-04, 3.63970467e-03, 9.99993245e-01]])
-    R = np.array(pyrowlist(R))   # julia 转到   python np.array()
+    R = np.array(pyrowlist(R))   # julia 转到 python np.array()
     r_mat_rel_gt = np.array(pyrowlist(r_mat_rel_gt))
     info, _ = camera.get_euler_angle(R)
     degrees = camera.get_r_error(R, r_mat_rel_gt)
     println(info)
     println("degrees:", degrees)
+    # save("/home/zhangyong/codes/AutoCab.jl/src/cameras_1.jld2", "aaa")
+    # jldsave("/home/zhangyong/codes/AutoCab.jl/src/cameras_1.jld2"; previous_points, current_points, cameras)
+    @save "/home/zhangyong/codes/AutoCab.jl/src/cameras_2.jld2" previous_points current_points cameras
     return previous_points, current_points, cameras
 end
 
@@ -103,34 +119,26 @@ function backproject(c::Camera, point::Point2f)
     Point3f((point[1] - c.cx) / c.fx, (point[2] - c.cy) / c.fy, 1.0)
 end
 
-
-function ba_1()
-    # local_ba
-    # map_manager是最顶层的对象了
-    dataset = CampusDataset(base_dir, sequence; stereo)
-
-    cache = _get_ba_parameters(map_manager, covisibility_map, min_cov_score)
-    
-    bundle_adjustment!(cache, camera; show_trace=false)
- 
-end
-
-
-function get_observations(imgpoints, cameras)
+function get_observations(previous_points, current_points, cameras)
     # imgpoints是 成对的匹配点
-    K = to_4x4(camera.K)
+    K = to_4x4(cameras[1].K)
     # P1 - previous Keyframe, P2 - this `frame`.
     P1 = K * SMatrix{4, 4, Float64, 16}(I)
-    P2 = K * SMatrix{4, 4, Float64, 16}(I)
+    P2 = K * cameras[2].Ti0
+    set_cw!(cameras[2], cameras[2].Ti0)
 
     observations = []
-    for 2d_pint in imgpoints
-        
-        left_point = triangulate(obup[[2, 1]], kpup[[2, 1]], P1, P2)  # 2d->3d点, 齐次的. 相机坐标的
+    for (kpup, obup) in zip(previous_points, current_points)
+        println(kpup, obup)
+        left_point = triangulate(obup, kpup, P1, P2)  # 2d->3d点, 齐次的. 相机坐标的
         left_point *= 1.0 / left_point[4]
+        println(left_point)
         wpt = project_camera_to_world(cameras[2], left_point)[1:3]  # 相机坐标系到世界坐标系
-        mp_position = wpt
+        mp_position = wpt  # 3d point
+        println(mp_position)
 
+        # ob_pose = cameras[2].Ti0 
+        # 观察点
         # observation = Observation(ob_pixel, mp_position, ob_pose, mp_order_id, 
         #                           pose_order_id, is_constant, in_covmap, ob_kfid, kpid)
         # push!(observations, observation)
@@ -140,22 +148,33 @@ function get_observations(imgpoints, cameras)
     return observations
 end
 
+function ba_1(observations)
+    # local_ba
+
+    cache = _get_ba_parameters(observations)
+    
+    bundle_adjustment!(cache, camera; show_trace=false)
+ 
+end
+
 function test_2()
 
-    previous_points, current_points, cameras = camera_1()
+    # previous_points, current_points, cameras = camera_1()
+    @load "/home/zhangyong/codes/AutoCab.jl/src/cameras_2.jld2" previous_points current_points cameras
 
-    get_observations(imgpoints, cameras)
+    observations = get_observations(previous_points, current_points, cameras)
+
+    # ba_1(observations)
 
 end
 
+
 # camera_1()
-
-
-
-
+test_2()
 
 
 #=
+10.9.1.8
 export JULIA_PYTHONCALL_EXE=/home/zhangyong/miniconda3/bin/python
 julia --project=/home/zhangyong/codes/AutoCab.jl/Project.toml /home/zhangyong/codes/AutoCab.jl/src/test_2.jl
 

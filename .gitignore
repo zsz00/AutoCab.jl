@@ -2,3 +2,4 @@ src/debug.log
 conda_env/
 .vscode/
 __pycache__/
+*.jld2
