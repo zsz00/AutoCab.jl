@@ -4,59 +4,56 @@ struct Observation
     point::Point3f   # 3d, 世界坐标系 
     pose::NTuple{6, Float64}   # NTuple,长度为6个,类型都是Float64的Tuple
     # camera_id::Int64
-    point_order::Int64
-    pose_order::Int64    # camera_id
+    point_order::Int64   # 3d点的序号
+    pose_order::Int64    # camera_id, pose编号,序号
 
-    constant::Bool   # 不变的
+    constant::Bool    # 不变的
     in_covmap::Bool   # 是否在不变3d点里
-    kfid::Int64    # key frame id
-    mpid::Int64    # map id
+    # kfid::Int64    # key frame id
+    # mpid::Int64    # map id
 end
 
 struct LocalBACache
     observations::Vector{Observation}
-    outliers::Vector{Bool} # same length as observations. 异常值标志
+    outliers::Vector{Bool}  # 异常值标志, same length as observations. 
 
     θ::Vector{Float64}
     θconst::Vector{Bool}
-    pixels::Matrix{Float64}
-
-    poses_ids::Vector{Int64}
-    points_ids::Vector{Int64}
-    poses_remap::Vector{Int64} # order id → kfid
-    points_remap::Vector{Int64} # order id → mpid
+    pixels::Matrix{Float64}    # size:2*n_observations,
+    poses_ids::Vector{Int64}   # size:n_observations, pose_id
+    points_ids::Vector{Int64}  # size:n_observations, point_id
+    # poses_remap::Vector{Int64}   # order id → kfid
+    # points_remap::Vector{Int64}  # order id → mpid
 end
 
 function LocalBACache(
     observations, θ, θconst, pixels,
-    poses_ids, points_ids, poses_remap, points_remap,
+    poses_ids, points_ids,
 )
     outliers = Vector{Bool}(undef, length(observations))
     LocalBACache(
         observations, outliers, θ, θconst, pixels,
-        poses_ids, points_ids, poses_remap, points_remap)
+        poses_ids, points_ids)
 end
 
 
 function _get_ba_parameters(observations)
     # poses: kfid → (order id, θ).  所有的poses
-    poses = Dict{Int64, Tuple{Int64, NTuple{6, Float64}}}()
-    constant_poses = Set{Int64}()   # 常量pose
-    # map_points: mpid → (order id, point).
-    map_points = Dict{Int64, Tuple{Int64, Point3f}}()
-    processed_keypoints_ids = Set{Int64}()  # 处理过的3d关键点
+    # poses = Dict{Int64, Tuple{Int64, NTuple{6, Float64}}}()
+    # constant_poses = Set{Int64}()   # 常量pose
+    # # map_points: mpid → (order id, point).
+    # map_points = Dict{Int64, Tuple{Int64, Point3f}}()
+    # processed_keypoints_ids = Set{Int64}()  # 处理过的3d关键点
 
     # observations = Vector{Observation}(undef, 0) # 观测值
-    poses_remap = Vector{Int64}(undef, 0)   # 重映射id
-    points_remap = Vector{Int64}(undef, 0)   # 重映射id
+    # poses_remap = Vector{Int64}(undef, 0)   # 重映射id
+    # points_remap = Vector{Int64}(undef, 0)   # 重映射id
     sizehint!(observations, 1000)
-    sizehint!(poses_remap, 10)
-    sizehint!(points_remap, 1000)
-
-    # observations = get_observations(imgpoints, R, t)
+    # sizehint!(poses_remap, 10)
+    # sizehint!(points_remap, 1000)
 
     n_observations = length(observations)
-    n_poses, n_points = length(poses), length(map_points)
+    n_poses, n_points = 1, 18  # length(poses), length(map_points)
     point_shift = n_poses * 6
 
     θ = Vector{Float64}(undef, point_shift + n_points * 3)
@@ -76,7 +73,6 @@ function _get_ba_parameters(observations)
         if !processed_poses[observation.pose_order]
             processed_poses[observation.pose_order] = true
             p = (observation.pose_order - 1) * 6
-
             θ[(p + 1):(p + 6)] .= observation.pose
             θconst[observation.pose_order] = observation.constant
         end
@@ -87,7 +83,7 @@ function _get_ba_parameters(observations)
         end
     end
 
-    local_ba_cache = LocalBACache(observations, θ, θconst, pixels, poses_ids, points_ids, poses_remap, points_remap)
+    local_ba_cache = LocalBACache(observations, θ, θconst, pixels, poses_ids, points_ids)
     return local_ba_cache
 end
 

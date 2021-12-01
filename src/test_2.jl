@@ -8,6 +8,9 @@ using RecoverPose
 using Rotations
 using Manifolds
 using OrderedCollections: OrderedSet, OrderedDict
+using LeastSquaresOptim
+using SparseArrays
+using SparseDiffTools
 
 const Point2 = SVector{2}
 const Point2f = SVector{2, Float32}
@@ -120,7 +123,7 @@ function backproject(c::Camera, point::Point2f)
 end
 
 function get_observations(previous_points, current_points, cameras)
-    # imgpoints是 成对的匹配点
+    # previous_points, current_points 是成对的匹配点
     K = to_4x4(cameras[1].K)
     # P1 - previous Keyframe, P2 - this `frame`.
     P1 = K * SMatrix{4, 4, Float64, 16}(I)
@@ -128,6 +131,7 @@ function get_observations(previous_points, current_points, cameras)
     set_cw!(cameras[2], cameras[2].Ti0)
 
     observations = []
+    mp_order_id = 0
     for (kpup, obup) in zip(previous_points, current_points)
         println(kpup, obup)
         left_point = triangulate(obup, kpup, P1, P2)  # 2d->3d点, 齐次的. 相机坐标的
@@ -137,35 +141,36 @@ function get_observations(previous_points, current_points, cameras)
         mp_position = wpt  # 3d point
         println(mp_position)
 
-        # ob_pose = cameras[2].Ti0 
+        ob_pixel = obup
+        ob_pose = get_cw_ba(cameras[2])   # R,t
+        mp_order_id += 1
         # 观察点
-        # observation = Observation(ob_pixel, mp_position, ob_pose, mp_order_id, 
-        #                           pose_order_id, is_constant, in_covmap, ob_kfid, kpid)
-        # push!(observations, observation)
-
+        observation = Observation(ob_pixel, mp_position, ob_pose, mp_order_id, 1, false, false)
+        push!(observations, observation)
     end
     
     return observations
 end
 
-function ba_1(observations)
+function ba_1(observations, cameras)
     # local_ba
-
+    println("ba_1()")
     cache = _get_ba_parameters(observations)
-    
-    bundle_adjustment!(cache, camera; show_trace=false)
- 
+    println(cache.θ[1:6])
+    bundle_adjustment!(cache, cameras[2])
+    println(cache.θ[1:6])
+
 end
 
 function test_2()
-
+    println("test_2()")
     # previous_points, current_points, cameras = camera_1()
     @load "/home/zhangyong/codes/AutoCab.jl/src/cameras_2.jld2" previous_points current_points cameras
 
     observations = get_observations(previous_points, current_points, cameras)
 
-    # ba_1(observations)
-
+    ba_1(observations, cameras)
+    
 end
 
 

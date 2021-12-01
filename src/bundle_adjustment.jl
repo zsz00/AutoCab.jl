@@ -5,7 +5,7 @@ function bundle_adjustment!(
 )
     fx, fy, cx, cy = camera.fx, camera.fy, camera.cx, camera.cy
     n_observations = length(cache.observations)   # 观察点 数量
-    n_poses, n_points = length(cache.poses_remap), length(cache.points_remap)
+    n_poses, n_points = 1, 18  # length(cache.poses_remap), length(cache.points_remap)
     poses_shift = n_poses * 6
 
     ignore_outliers = false
@@ -60,8 +60,8 @@ end
 function _get_jacobian_sparsity(cache, residue_f, ignore_outliers)
     # 获取 jac稀疏矩阵
     n_observations = length(cache.observations)
-    n_poses = length(cache.poses_remap)
-    n_points = length(cache.points_remap)
+    n_poses = 1  # length(cache.poses_remap)
+    n_points = 18  # length(cache.points_remap)
     poses_shift = n_poses * 6
     n_parameters = poses_shift + n_points * 3
 
@@ -85,16 +85,15 @@ function _get_jacobian_sparsity(cache, residue_f, ignore_outliers)
         end
     end
 
-    colorvec = matrix_colors(sparsity)
-    grad! = (j, x) -> forwarddiff_color_jacobian!(
-        j, residue_f, x; colorvec, sparsity)
+    colorvec = SparseDiffTools.matrix_colors(sparsity)
+    grad! = (j, x) -> SparseDiffTools.forwarddiff_color_jacobian!(j, residue_f, x; colorvec, sparsity)
     sparsity, grad!
 end
 
 function _ba_detect_outliers!(cache, θ, camera::Camera; repr_ϵ, depth_ϵ = 1e-6)
     n_observations = length(cache.observations)
-    n_poses = length(cache.poses_remap)
-    n_points = length(cache.points_remap)
+    n_poses = 1  # length(cache.poses_remap)
+    n_points = 18  # length(cache.points_remap)
     poses_shift = n_poses * 6
 
     poses = reshape(@view(θ[1:poses_shift]), 6, n_poses)
