@@ -9,11 +9,12 @@ function bundle_adjustment!(
     poses_shift = n_poses * 6
 
     ignore_outliers = false
-    Y = zeros(Float64, n_observations * 2)  # residue,重投影误差
+    Y = zeros(Float64, n_observations * 2)  # 观察点数量*2
 
     function residue!(Y, X)
-        poses = reshape(@view(X[1:poses_shift]), 6, n_poses)
-        points = reshape(@view(X[(poses_shift + 1):end]), 3, n_points)
+        # residue,重投影误差.  X就是θ0,可训练参数, Y是误差值.
+        poses = reshape(@view(X[1:poses_shift]), 6, n_poses)  # 相机外参
+        points = reshape(@view(X[(poses_shift + 1):end]), 3, n_points)  # 3d points
         
         @simd for i in 1:n_observations
             id = (i - 1) * 2
@@ -23,8 +24,8 @@ function bundle_adjustment!(
             else
                 pt = @view(points[:, cache.points_ids[i]])  # 3d point
                 T = @view(poses[:, cache.poses_ids[i]])
-                pt = RotZYX(T[1:3]...) * pt .+ T[4:6] # (x, y, z) 齐次坐标. R*X+t重投影为2d point.
-                px = @view(cache.pixels[:, i]) # (y, x) format. 2d投影,gt
+                pt = RotZYX(T[1:3]...) * pt .+ T[4:6] # (x, y, z) 齐次坐标. R*X+t,重投影X为pt,2d point.
+                px = @view(cache.pixels[:, i]) # (y, x) format. 2d point gt.
 
                 inv_z = 1.0 / pt[3]
                 Y[id + 1] = px[1] - (fy * pt[2] * inv_z + cy)
@@ -37,16 +38,16 @@ function bundle_adjustment!(
 
     # Fast run, to detect outliers.
     θ0 = cache.θ
-    sparsity, g! = _get_jacobian_sparsity(cache, residue!, ignore_outliers)  # 获取 jac稀疏矩阵
+    # 获取 jac稀疏矩阵sparsity. g!是个微分函数
+    sparsity, g! = _get_jacobian_sparsity(cache, residue!, ignore_outliers)  
 
     Y1 = optimize!(
         LeastSquaresProblem(θ0, Y, residue!, sparsity, g!), optimizer;
         iterations=5, show_trace,
     )
-    θ1 = Y1.minimizer  # 当前得到的参数, R,t,points
-    n_outliers = _ba_detect_outliers!(cache, θ1, camera; repr_ϵ)   # 剔除异常
-    @debug "BA N Outliers $n_outliers."
-
+    θ1 = Y1.minimizer  # 当前得到的最优 参数, R,t,points
+    # n_outliers = _ba_detect_outliers!(cache, θ1, camera; repr_ϵ)   # 剔除异常
+    # println("BA N Outliers $n_outliers.")
     ignore_outliers = true
     sparsity2, g2! = _get_jacobian_sparsity(cache, residue!, ignore_outliers)
 

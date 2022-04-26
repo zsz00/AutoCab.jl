@@ -146,7 +146,7 @@ end
 
 function add_keypoint!(f::Frame, point, id; descriptor::BitVector = BitVector(), is_3d::Bool = false,)
     undistorted_point = undistort_point(f.camera, point)  # 2d point to undistort_point
-    position = backproject(f.camera, undistorted_point)  # 2d undistort_point to 3d point (x,y,z).
+    position = backproject(f.camera, undistorted_point)  # 2d undistort_point to 3d point (x,y,z=1).
     add_keypoint!(f, Keypoint(id, point, undistorted_point, position, descriptor, is_3d))
 end
 

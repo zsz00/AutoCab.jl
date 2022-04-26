@@ -1,6 +1,6 @@
 
 struct Observation
-    pixel::Point2f
+    pixel::Point2f   # 去畸变的归一化的像素坐标点
     point::Point3f   # 3d, 世界坐标系 
     pose::NTuple{6, Float64}   # NTuple,长度为6个,类型都是Float64的Tuple
     # camera_id::Int64
@@ -48,15 +48,15 @@ function _get_ba_parameters(observations)
     # observations = Vector{Observation}(undef, 0) # 观测值
     # poses_remap = Vector{Int64}(undef, 0)   # 重映射id
     # points_remap = Vector{Int64}(undef, 0)   # 重映射id
-    sizehint!(observations, 1000)
+    sizehint!(observations, 1000)   # 先预分配1000个的空间
     # sizehint!(poses_remap, 10)
     # sizehint!(points_remap, 1000)
 
     n_observations = length(observations)
-    n_poses, n_points = 1, 18  # length(poses), length(map_points)
+    n_poses, n_points = 1, 18  # length(poses), length(map_points) 3d点个数
     point_shift = n_poses * 6
 
-    θ = Vector{Float64}(undef, point_shift + n_points * 3)
+    θ = Vector{Float64}(undef, point_shift + n_points * 3)  # ba要训练修改的参数
     θconst = Vector{Bool}(undef, n_poses)
     poses_ids = Vector{Int64}(undef, n_observations)
     points_ids = Vector{Int64}(undef, n_observations)

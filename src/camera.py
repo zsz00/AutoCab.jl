@@ -26,7 +26,7 @@ def normal_camera_calibrate():
     dir_1 = r'/home/zhangyong/codes/auto_calibrat/images/bascat_cams/test_1/1'
     images = [os.path.join(dir_1, img) for img in os.listdir(dir_1) if img[-3:] == "jpg"]
     # images = ['../images/hw6/201809261350515.jpg', '../images/hw6/201809261350513.jpg']
-    # images = sorted(images)
+    images = sorted(images)
     for fname in images:
         print(fname)
         img = cv2.imread(fname)
@@ -70,10 +70,10 @@ def normal_camera_calibrate():
     print('r_rel:', info)
 
     k_1 = np.array([[3.55489412e+03, 0.00000000e+00, 1.22230841e+03], [0.00000000e+00, 3.53687866e+03, 1.00094593e+03], [0,0,1]])
-    d_1 = np.array([-6.75587711e-02, -7.71911226e-02, -1.42015507e-02,1.63239614e-03,  2.30015727e+00])
+    d_1 = np.array([[-6.75587711e-02, -7.71911226e-02, -1.42015507e-02,1.63239614e-03, 2.30015727e+00]])
 
     ud_ref_view_pts, ud_other_view_pts = imgpoints
-    ud_ref_view_pts = cv2.undistortPoints(ud_ref_view_pts, k_1, d_1, None, None)  # 去畸变
+    ud_ref_view_pts = cv2.undistortPoints(ud_ref_view_pts, k_1, d_1, None, None)  # 去畸变, 归一化的. shape:(18,1,2)
     ud_other_view_pts = cv2.undistortPoints(ud_other_view_pts, k_1, d_1, None, None)  # 去畸变
     imgpoints = [ud_ref_view_pts, ud_other_view_pts]
 
@@ -132,14 +132,11 @@ def get_euler_angle(R_mat):
     # print(f'弧度: pitch:{pitch:.4f}, yaw:{yaw:.4f}, roll:{roll:.4f}')
 
     # 单位转换：将弧度转换为度
-    # Y = int((pitch / math.pi) * 180)
-    # X = int((yaw / math.pi) * 180)
-    # Z = int((roll / math.pi) * 180)
     Y = (pitch / math.pi) * 180
     X = (yaw / math.pi) * 180
     Z = (roll / math.pi) * 180
     # print(f'角度: pitch:{X:.2f}, yaw:{Y:.1f}, roll:{Z:.2f}')
-    info = f'角度: pitch:{X:.2f}, yaw:{Y:.1f}, roll:{Z:.2f}'
+    info = f'角度: pitch:{Y:.1f}, yaw:{X:.2f}, roll:{Z:.2f}'
     # return 0, Y, X, Z
     return info, [X, Y, Z]
 

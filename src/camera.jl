@@ -27,13 +27,13 @@ mutable struct Camera
     height::Int64
     width::Int64
 
-    # Transformation from 0-th camera to i-th (this).  w to c
+    # Transformation from 0-th camera to i-th (this).  w to c  相对外参
     Ti0::SMatrix{4,4,Float64,16}
     # Transformation from i-th (this) camera to 0-th.
     T0i::SMatrix{4,4,Float64,16}
 
-    cw::SMatrix{4, 4, Float64, 16}   # pose, w to c
-    wc::SMatrix{4, 4, Float64, 16}   # pose, c to w
+    cw::SMatrix{4, 4, Float64, 16}   # pose, w to c.   绝对外参
+    wc::SMatrix{4, 4, Float64, 16}   # pose, c to w.  
 end
 
 function Camera(
