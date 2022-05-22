@@ -4,7 +4,7 @@ using Printf
 using Images
 using Manifolds
 using JSON3
-using PyCall
+
 
 @inline function parse_matrix(line)
     m = parse.(Float64, split(line, " "))

@@ -9,7 +9,7 @@ function bundle_adjustment!(
     poses_shift = n_poses * 6
 
     ignore_outliers = false
-    Y = zeros(Float64, n_observations * 2)  # 观察点数量*2
+    Y = zeros(Float64, n_observations * 2)  # 观察点数量*2(dim)  图片上的2d点
 
     function residue!(Y, X)
         # residue,重投影误差.  X就是θ0,可训练参数, Y是误差值.
@@ -23,8 +23,8 @@ function bundle_adjustment!(
                 Y[id + 2] = 0.0
             else
                 pt = @view(points[:, cache.points_ids[i]])  # 3d point
-                T = @view(poses[:, cache.poses_ids[i]])
-                pt = RotZYX(T[1:3]...) * pt .+ T[4:6] # (x, y, z) 齐次坐标. R*X+t,重投影X为pt,2d point.
+                T = @view(poses[:, cache.poses_ids[i]])  # 选取对应的外参
+                pt = RotZYX(T[1:3]...) * pt .+ T[4:6] # (x, y, z) 齐次坐标. R*X+t,重投影X为pt,2d point. 同cv2.projectPoints()
                 px = @view(cache.pixels[:, i]) # (y, x) format. 2d point gt.
 
                 inv_z = 1.0 / pt[3]

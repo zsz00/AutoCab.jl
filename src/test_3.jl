@@ -1,3 +1,4 @@
+ENV["JULIA_PYTHONCALL_EXE"]="/home/zhangyong/miniconda3/bin/python"
 using StaticArrays
 using LinearAlgebra
 using Images
@@ -206,4 +207,5 @@ t: [0.01631412381795355, -0.1696495806625384, 0.9853694074534065]
 degrees:[19.2452475]
 ba:
 角度: pitch:-1.8, yaw:-17.25, roll:-6.82, t:[0.010874871866055444, -0.15953858881687685, 0.9871317925384717]
+
 =#
