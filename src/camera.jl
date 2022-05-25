@@ -8,6 +8,7 @@ Camera
 """
 mutable struct Camera
     id::Int64
+    id_str::String
     # Focal length.
     fx::Float64
     fy::Float64
@@ -22,7 +23,7 @@ mutable struct Camera
     p2::Float64
     # Intrinsic matrix.
     K::SMatrix{3,3,Float64,9}
-    iK::SMatrix{3,3,Float64,9}
+    iK::SMatrix{3,3,Float64,9}  # inv(K)
     # Image resolution.
     height::Int64
     width::Int64
@@ -32,12 +33,12 @@ mutable struct Camera
     # Transformation from i-th (this) camera to 0-th.
     T0i::SMatrix{4,4,Float64,16}
 
-    cw::SMatrix{4, 4, Float64, 16}   # pose, w to c.   绝对外参
+    cw::SMatrix{4, 4, Float64, 16}   # pose, w to c.   世界坐标系到相机坐标系
     wc::SMatrix{4, 4, Float64, 16}   # pose, c to w.  
 end
 
 function Camera(
-    id, fx, fy, cx, cy, # Intrinsics.
+    id, id_str, fx, fy, cx, cy, # Intrinsics.
     k1, k2, p1, p2, # Distortion coefficients.
     height, width; Ti0=SMatrix{4,4,Float64}(I),
 )
@@ -47,7 +48,7 @@ function Camera(
         cx, cy, 1.0)
     iK = K |> inv
 
-    Camera(id, fx, fy, cx, cy, k1, k2, p1, p2,
+    Camera(id, id_str, fx, fy, cx, cy, k1, k2, p1, p2,
            K, iK, height, width, Ti0, inv(SE3, Ti0), Ti0, Ti0)
 end
 
@@ -177,7 +178,7 @@ end
 
 function get_cw_ba(c::Camera)::NTuple{6, Float64}
     r = RotZYX(c.cw[1:3, 1:3])   # r_vec
-    (r.theta1, r.theta2, r.theta3, c.cw[1:3, 4]...)   # r_vec,t
+    (r.theta1, r.theta2, r.theta3, c.cw[1:3, 4]...)   # r_vec,t 6
 end
 
 function get_wc_ba(c::Camera)::NTuple{6, Float64}

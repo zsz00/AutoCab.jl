@@ -6,7 +6,6 @@ export set_image!, set_position!
 
 using BSON: @save, @load
 using OrderedCollections: OrderedSet, OrderedDict
-# using GLMakie
 using Interpolations
 using Images
 using ImageDraw

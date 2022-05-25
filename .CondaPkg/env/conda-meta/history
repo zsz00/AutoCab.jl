@@ -1,0 +1,32 @@
+==> 2022-05-23 00:07:59 <==
+# cmd: /home/zhangyong/.julia/artifacts/48bea7fd0f83a9b40c198e3623d5e5451b3ab145/bin/micromamba -r /home/zhangyong/.julia/scratchspaces/0b3b1443-0f03-428d-bdfb-f27f9c1191ea/root create -q -y -p /home/zhangyong/codes/AutoCab.jl/.CondaPkg/env --override-channels --no-channel-priority python[version='>=3.5,<4'] -c conda-forge
+# conda version: 3.8.0
++https://conda.anaconda.org/conda-forge/linux-64::_libgcc_mutex-0.1-conda_forge
++https://conda.anaconda.org/conda-forge/linux-64::ld_impl_linux-64-2.36.1-hea4e1c9_2
++https://conda.anaconda.org/conda-forge/linux-64::ca-certificates-2022.5.18.1-ha878542_0
++https://conda.anaconda.org/conda-forge/linux-64::libgomp-12.1.0-h8d9b700_16
++https://conda.anaconda.org/conda-forge/linux-64::_openmp_mutex-4.5-2_gnu
++https://conda.anaconda.org/conda-forge/linux-64::libgcc-ng-12.1.0-h8d9b700_16
++https://conda.anaconda.org/conda-forge/linux-64::libuuid-2.32.1-h7f98852_1000
++https://conda.anaconda.org/conda-forge/linux-64::xz-5.2.5-h516909a_1
++https://conda.anaconda.org/conda-forge/linux-64::openssl-3.0.3-h166bdaf_0
++https://conda.anaconda.org/conda-forge/linux-64::libffi-3.4.2-h7f98852_5
++https://conda.anaconda.org/conda-forge/linux-64::bzip2-1.0.8-h7f98852_4
++https://conda.anaconda.org/conda-forge/linux-64::ncurses-6.3-h27087fc_1
++https://conda.anaconda.org/conda-forge/linux-64::libzlib-1.2.11-h166bdaf_1014
++https://conda.anaconda.org/conda-forge/linux-64::libnsl-2.0.0-h7f98852_0
++https://conda.anaconda.org/conda-forge/linux-64::readline-8.1-h46c0cb4_0
++https://conda.anaconda.org/conda-forge/linux-64::zlib-1.2.11-h166bdaf_1014
++https://conda.anaconda.org/conda-forge/linux-64::tk-8.6.12-h27826a3_0
++https://conda.anaconda.org/conda-forge/linux-64::sqlite-3.38.5-h4ff8645_0
++https://conda.anaconda.org/conda-forge/noarch::tzdata-2022a-h191b570_0
++https://conda.anaconda.org/conda-forge/linux-64::python-3.10.4-h2660328_0_cpython
++https://conda.anaconda.org/conda-forge/linux-64::python_abi-3.10-2_cp310
++https://conda.anaconda.org/conda-forge/linux-64::setuptools-62.3.2-py310hff52083_0
++https://conda.anaconda.org/conda-forge/noarch::wheel-0.37.1-pyhd8ed1ab_0
++https://conda.anaconda.org/conda-forge/noarch::pip-22.1.1-pyhd8ed1ab_0
+# update specs: ["python[version='>=3.5,<4']"]
+==> 2022-05-23 00:21:29 <==
+# cmd: /home/zhangyong/.julia/artifacts/48bea7fd0f83a9b40c198e3623d5e5451b3ab145/bin/micromamba -r /home/zhangyong/.julia/scratchspaces/0b3b1443-0f03-428d-bdfb-f27f9c1191ea/root create -q -y -p /home/zhangyong/codes/AutoCab.jl/.CondaPkg/env --override-channels --no-channel-priority python[version='>=3.5,<4'] -c conda-forge
+# conda version: 3.8.0
+# update specs: ["python[version='>=3.5,<4']"]
