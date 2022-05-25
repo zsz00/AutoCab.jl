@@ -3,3 +3,4 @@ conda_env/
 .vscode/
 __pycache__/
 *.jld2
+.CondaPkg/
