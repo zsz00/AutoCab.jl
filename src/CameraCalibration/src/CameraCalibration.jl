@@ -12,10 +12,10 @@ include("calibration.jl")
 # Exports
 export innercorners, allcorners, markcorners
 export segboundariescheck
-export checkboundaries
+export check_boundaries
 export process_image
 export nonmaxsuppresion
-export kxkneighboardhood
+export kxk_neighboardhood
 export drawdots!, draw_rect
 
 export estimateHomography, calibrate, getHomographies, getCameraIntrinsics, getExtrinsics,

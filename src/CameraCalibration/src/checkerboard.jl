@@ -38,7 +38,7 @@ end
 
 
 """
-function kxkneighboardhood(chessboard,
+function kxk_neighboardhood(chessboard,
                            refined1;
                            stdatol=0.1,
                            cortol=0.6,
@@ -49,8 +49,8 @@ function kxkneighboardhood(chessboard,
     board = Float32.(chessboard)
     for (idx, i) in enumerate(refined1)
         x, y = i[1], i[2]
-        std1 = !isapprox(std(p1), std(p2); atol=stdatol)
-        std2 = !isapprox(std(p3), std(p4); atol=stdatol)
+        # std1 = !isapprox(std(p1), std(p2); atol=stdatol)
+        # std2 = !isapprox(std(p3), std(p4); atol=stdatol)
         # cor1 = 10^((cor(vec(p1), vec(reverse(p2))) / 0.8) -1) > cortol
         # cor2 = 10^((cor(vec(p3), vec(reverse(p4))) / 0.8) -1) > cortol
         # if  std1 || std2 || !cor1 || !cor2
@@ -58,9 +58,9 @@ function kxkneighboardhood(chessboard,
         # end
         imgtest = board[(x - n):(x + n), (y - n):(y + n)]
         res = cor(vec(imgtest), vec(reverse(imgtest)))
-        if std1 || std2 || res < 0.7
-            continue
-        end
+        # if std1 || std2 || res < 0.7
+        #     continue
+        # end
         reut[idx] = true
     end
     refined2 = map((x, y) -> y ? x : nothing, refined1, reut)
@@ -193,7 +193,7 @@ returns true if boundaries satisfy segboundariescheck for a range of pixels regi
 - 'cords' : array of cartesian indices which indicaes corners in a image
 - `pixels`: array of pixels region to be checked centered at cords
 """
-function checkboundaries(checkerboard, cords; pixels=[11, 23, 35])
+function check_boundaries(checkerboard, cords; pixels=[11, 23, 35])
     currentstate = zeros(Bool, length(cords))
     # assumes that checkboard is gray
     checkerboard = checkerboard .> 0.4
@@ -210,20 +210,19 @@ function checkboundaries(checkerboard, cords; pixels=[11, 23, 35])
 end
 
 """
-
+    process_image(gray_img)
 processes the checkerboard
 """
-function process_image(chessboard)
+function process_image(gray_img)
     # we need a algorithm to check if there is a checkerboard or not in image
     # still need to study how filters from ImageFiltering.jl can improve results
-    imagecorners = imcorner(chessboard, Percentile(99); method=Images.harris)
+    imagecorners = imcorner(gray_img, Percentile(99); method=Images.harris)
     # imagecorners = fastcorners(chessboard, 11, 0.20) # still gotta check if this is worth it 
-    imagecorners = clearborder(imagecorners, 35) # 35 is the boundary width we change
-    results = map(x -> imagecorners[x] == true ? x : nothing,
-                  CartesianIndices(imagecorners))
+    image_corners = clearborder(imagecorners, 35) # 35 is the boundary width we change
+    results = map(x -> image_corners[x] == true ? x : nothing, CartesianIndices(image_corners))
     results = filter(x -> x !== nothing, results)
-    correlationcheck = kxkneighboardhood(chessboard, results;)
-    bounds = checkboundaries(chessboard, correlationcheck; pixels=[11, 23, 35])
+    correlation_check = kxk_neighboardhood(gray_img, results;)
+    bounds = check_boundaries(gray_img, correlation_check; pixels=[11, 23, 35])
     # also we need algorithm for checking if we have a board now, with connected components still
     # also we need algorithm for checking if we have outliers and remove them  if they exist
     finalcorners = nonmaxsuppresion(bounds) # return checkboard points

@@ -203,25 +203,3 @@ function estimateViewTransorm(a::Array{<:Real, 2}, h::Array{<:Real, 2})
     t = κ * inv(a) * h[:, 3]
     return hcat(R, t)
 end
-
-"""
-tests
-asample = [182 535 171 537; 350 358 553 563; 1 1 1 1]
-bsample = [0 888 0 888; 0 0 500 500; 1 1 1 1]
-
-
-testobj = [0. 1. 2. 3. 4. 5. 6. 0. 1. 2. 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6 0 1 2 3 4 5 6;
-           4 4 4 4 4 4 4 3 3 3 3 3 3 3 2 2 2 2 2 2 2 1 1 1 1 1 1 1 0 0 0 0 0 0 0;
-           1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1]
-
-using CSV, DataFrames
-imgpoints = Array{Float64, 2}[]
-    for i = 0:10
-        push!(imgpoints, vcat(convert(Array{Float64, 2}, CSV.File(string("./test/imgpoints", i, ".csv"), header = false) |> DataFrame)', ones(1, 35)))
-    end
-
-using Plots
-cord = [-ex[i][:,1:3]'*ex[i][:,4] for i in 1:11]
-p = scatter([cord[i][1] for i = 1:11], [cord[i][2] for i = 1:11], [cord[i][3] for i = 1:11],marker=:circle,linewidth=0, group = 1:11)
-plot(p, xlabel="X",ylabel="Y",zlabel="Z", size = (800, 800))
-"""
