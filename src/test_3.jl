@@ -179,7 +179,7 @@ function test_2()
     previous_points, current_points, cameras = camera_1()
     # @load "/home/zhangyong/codes/AutoCab.jl/src/cameras_4.jld2" previous_points current_points cameras
     # println("================================ ba ======================================")
-    # observations = get_observations(previous_points, current_points, cameras)
+    observations = get_observations(previous_points, current_points, cameras)
     # ba_1(observations, cameras)
     
 end
