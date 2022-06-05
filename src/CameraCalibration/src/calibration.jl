@@ -27,9 +27,9 @@ function estimateHomography(a::Array{<:Real, 2}, b::Array{<:Real, 2})
         k = 2 * j
         ap = nA * a[:, j]
         bp = nB * b[:, j]
-        # M_{k,*} = (x′_a, y′_a, 1, 0, 0, 0, −x′_ax′_b , −y′_ax′_b, −x′_b )
+        # M_{k,*} = (x′_a, y′_a, 1, 0, 0, 0, −x′_a*x′_b , −y′_a*x′_b, −x′_b )
         m[k - 1, :] = [ap[1] ap[2] 1 0 0 0 -ap[1] * bp[1] -ap[2] * bp[1] -bp[1]]
-        # M_{k+1,*} = (0, 0, 0, x′_a , y′_a , 1, −x′_ay′_b, −y′_ay′_b , −y′_b )
+        # M_{k+1,*} = (0, 0, 0, x′_a , y′_a , 1, −x′_a*y′_b, −y′_a*y′_b , −y′_b )
         m[k, :] = [0 0 0 ap[1] ap[2] 1 -ap[1] * bp[2] -ap[2] * bp[2] -bp[2]]
     end
 
@@ -37,17 +37,15 @@ function estimateHomography(a::Array{<:Real, 2}, b::Array{<:Real, 2})
     u, d, v = svd(m, full=true)
     h = v[:, 9] #last column of v
     H = [h[1] h[2] h[3];
-         h[4] h[5] h[6]
+         h[4] h[5] h[6];
          h[7] h[8] h[9]]
 
     H = inv(nB) * H * nA
     return H ./ H[3, 3]
 end
+
 """
 getNormalisationMatrix - returns normalisation matrix of points x
-'''
-
-'''
 """
 function getNormalisationMatrix(x::Array{<:Real, 2})
     m = mean(x[1:2, :], dims=2)
@@ -99,8 +97,10 @@ end
 
 function calibrate(x::Array{<:Real, 2}, u::Array{Array{T1, 2}, 1}) where {T1 <: Real}
     hListInit = getHomographies(x, u)
+    # aInit = getCameraIntrinsics(hListInit)
     aInit = getCameraIntrinsicsB(hListInit)
     wInit = getExtrinsics(aInit, hListInit)
+    return aInit, wInit
 end
 
 function getHomographies(x::Array{<:Real, 2}, u::Array{Array{T1, 2}, 1}) where {T1 <: Real}
@@ -161,7 +161,8 @@ function getCameraIntrinsicsB(hs::Array{Array{T1, 2}, 1}) where {T1 <: Real}
     bInit = [b[1] b[2] b[4]
              b[2] b[3] b[5]
              b[4] b[5] b[6]]
-    C = cholesky(bInit)
+    println(bInit)
+    C = cholesky(bInit)  # cholesky分解
     return inv(C.L)' * C.L[3, 3]
 end
 
@@ -176,7 +177,6 @@ end
 
 """
 a is intrinsic matrix hs is list of homographies
-
 """
 function getExtrinsics(a::Array{<:Real, 2}, hs::Array{Array{T1, 2}, 1}) where {T1 <: Real}
     wList = Array{Float64, 2}[]

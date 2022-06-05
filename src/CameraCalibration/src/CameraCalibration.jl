@@ -10,13 +10,13 @@ include("checkerboard.jl")
 include("calibration.jl")
 
 # Exports
-export innercorners, allcorners, markcorners
-export segboundariescheck
+export inner_corners, all_corners, mark_corners
+export seg_boundaries_check
 export check_boundaries
 export process_image
 export nonmaxsuppresion
 export kxk_neighboardhood
-export drawdots!, draw_rect
+export draw_dots!, draw_rect
 
 export estimateHomography, calibrate, getHomographies, getCameraIntrinsics, getExtrinsics,
        getCameraIntrinsicsB

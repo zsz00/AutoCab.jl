@@ -4,3 +4,6 @@ conda_env/
 __pycache__/
 *.jld2
 .CondaPkg/
+test/
+*.jpg
+*.bmp

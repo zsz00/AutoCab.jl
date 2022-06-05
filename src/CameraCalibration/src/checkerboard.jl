@@ -1,24 +1,23 @@
 
 """
-function innercorners(length::Int, width::Int)
+    innercorners(length::Int, width::Int)
 
 return innercorners in a checkerboard of size length * width
 """
-function innercorners(length::Int, width::Int)
+function inner_corners(length::Int, width::Int)
     (length - 1) * (width - 1)
 end
 
 """
-allboardcorners(length::Int, width::Int)
+    allboardcorners(length::Int, width::Int)
 
 returns allboardcorners in a checkerboard of size length * width
-
 """
-function allcorners(length::Int, width::Int)
+function all_corners(length::Int, width::Int)
     (length + 1) * (width + 1)
 end
 
-function drawdots!(img, res, color; size=5)
+function draw_dots!(img, res, color; size=5)
     for i in res
         img[(i[1] - size):(i[1] + size) (i[2] - size):(i[2] + size)] .= color
     end
@@ -34,11 +33,7 @@ function draw_rect(img, dots, color=Gray{N0f8}(1); size=5)
     end
 end
 
-"""
-
-
-"""
-function kxk_neighboardhood(chessboard,
+function kxk_neighboardhood(gray_img,
                            refined1;
                            stdatol=0.1,
                            cortol=0.6,
@@ -46,7 +41,7 @@ function kxk_neighboardhood(chessboard,
                            m=11,
                            k=13)
     reut = zeros(Bool, length(refined1))
-    board = Float32.(chessboard)
+    board = Float32.(gray_img)
     for (idx, i) in enumerate(refined1)
         x, y = i[1], i[2]
         # std1 = !isapprox(std(p1), std(p2); atol=stdatol)
@@ -58,9 +53,9 @@ function kxk_neighboardhood(chessboard,
         # end
         imgtest = board[(x - n):(x + n), (y - n):(y + n)]
         res = cor(vec(imgtest), vec(reverse(imgtest)))
-        # if std1 || std2 || res < 0.7
-        #     continue
-        # end
+        if res < 0.7   # std1 || std2 || 
+            continue
+        end
         reut[idx] = true
     end
     refined2 = map((x, y) -> y ? x : nothing, refined1, reut)
@@ -116,13 +111,8 @@ returns corners of checkerboard in an image with size length * width
 - `filter`: size of filter for mapwindow
 - `returnimg`: if true, returns image with corners marked
 
-### Example
-```jl
-
-using CameraCalibrations
-```
 """
-function markcorners(img::AbstractArray;
+function mark_corners(img::AbstractArray;
                      method=harris,
                      crthres=Percentile(99),
                      LoGparams=2.0 .^ [3.0],
@@ -166,7 +156,7 @@ In this we can say we have 4 changes in the boundary.
 Numcheck is the number of changes we want to check.
 
 """
-function segboundariescheck(imgs; numcheck=4)
+function seg_boundaries_check(imgs; numcheck=4)
     check = zeros(Bool, length(imgs))
     for (idx, i) in enumerate(imgs)
         a = vcat(i[1, :], i[:, end], reverse(i[end, :]), reverse(i[:, 1]))
@@ -186,7 +176,7 @@ end
 """
 checkboundaries(checkerboard, cords; pixels = [11,23,35])
 
-returns true if boundaries satisfy segboundariescheck for a range of pixels regions
+returns true if boundaries satisfy seg_boundaries_check for a range of pixels regions
 
 ### Arguments
 - 'checkerboard': checkerboard img to be processed
@@ -194,7 +184,7 @@ returns true if boundaries satisfy segboundariescheck for a range of pixels regi
 - `pixels`: array of pixels region to be checked centered at cords
 """
 function check_boundaries(checkerboard, cords; pixels=[11, 23, 35])
-    currentstate = zeros(Bool, length(cords))
+    current_state = zeros(Bool, length(cords))
     # assumes that checkboard is gray
     checkerboard = checkerboard .> 0.4
     for n in pixels
@@ -202,75 +192,76 @@ function check_boundaries(checkerboard, cords; pixels=[11, 23, 35])
         res = map(x -> checkerboard[(x[1] - n):(x[1] + n), (x[2] - n):(x[2] + n)], cords)
         # # res = map(x-> Gray.(x .> meanfinite(x)), corners)
         # res = map(x-> x .> 0.4, corners)
-        check = segboundariescheck(res)
-        currentstate = map(x -> (x > 0) ? true : false, currentstate .+ check)
+        check = seg_boundaries_check(res)
+        current_state = map(x -> (x > 0) ? true : false, current_state .+ check)
     end
-    refined = map((x, y) -> y ? x : nothing, cords, currentstate)
+    refined = map((x, y) -> y ? x : nothing, cords, current_state)
     refined1 = filter(x -> x !== nothing, refined)
 end
 
 """
     process_image(gray_img)
-processes the checkerboard
+processes the checkerboard gray img
 """
 function process_image(gray_img)
     # we need a algorithm to check if there is a checkerboard or not in image
     # still need to study how filters from ImageFiltering.jl can improve results
-    imagecorners = imcorner(gray_img, Percentile(99); method=Images.harris)
-    # imagecorners = fastcorners(chessboard, 11, 0.20) # still gotta check if this is worth it 
-    image_corners = clearborder(imagecorners, 35) # 35 is the boundary width we change
+    image_corners = imcorner(gray_img, Percentile(99.5); method=Images.harris)
+    # image_corners = fastcorners(chessboard, 11, 0.20) # still gotta check if this is worth it 
+    image_corners = clearborder(image_corners, 35) # 35 is the boundary width we change
     results = map(x -> image_corners[x] == true ? x : nothing, CartesianIndices(image_corners))
     results = filter(x -> x !== nothing, results)
     correlation_check = kxk_neighboardhood(gray_img, results;)
     bounds = check_boundaries(gray_img, correlation_check; pixels=[11, 23, 35])
     # also we need algorithm for checking if we have a board now, with connected components still
     # also we need algorithm for checking if we have outliers and remove them  if they exist
-    finalcorners = nonmaxsuppresion(bounds) # return checkboard points
+    final_corners = nonmaxsuppresion(bounds) # NMS, return checkboard points
+    return final_corners
 end
 
 """
-videotrack()
+video_track()
 
-To work with realtime data after corners have been detected, use videotrack.
+To work with realtime data after corners have been detected, use video_track.
 """
-# function videotrack()
-#     if :GLMakie ∉ names(Main,imported=true)
-#         throw(error("GLMakie needs to be imported first"))
-#     end
-#     try 
-
-#         img = read(cam)
-#         fig = GLMakie.Figure(size = (1000, 700), title = "Checkerboard detection")
-#         ax = GLMakie.Axis(
-#             fig[1, 1],
-#             aspect = DataAspect(),
-#             xlabel = "x",
-#             xlabelcolor = :black,
-#             ylabel = "y label",
-#             ylabelcolor = :white,
-#             title = "Image",
-#             backgroundcolor = :black,
-#             labelcolor = :white,
-#         )
-#         node = Node(rotr90(img))
-#         makieimg = image!(ax, node)
-#         while isopen(cam)
-#             read!(cam, img)
-#             res, img = markcorners(img; returnimg = true)
-#             node[] = rotr90(img)
-#             if ispressed(scene, Keyboard.q) == true
-#                 close(cam)
-#                 return
-#             end 
-#             sleep(1 / VideoIO.framerate(cam))
-#         end
-#         close(cam)
-#     catch e
-#         try  
-#             close(cam)
-#         catch e
-#             throw(error("Could not close camera camera"))
-#         end
-#         throw(error("Unable to open webcam"))
-#     end
-# end
+function video_track()
+    if :GLMakie ∉ names(Main,imported=true)
+        throw(error("GLMakie needs to be imported first"))
+    end
+    
+    try 
+        img = read(cam)
+        fig = GLMakie.Figure(size = (1000, 700), title = "Checkerboard detection")
+        ax = GLMakie.Axis(
+            fig[1, 1],
+            aspect = DataAspect(),
+            xlabel = "x",
+            xlabelcolor = :black,
+            ylabel = "y label",
+            ylabelcolor = :white,
+            title = "Image",
+            backgroundcolor = :black,
+            labelcolor = :white,
+        )
+        node = Node(rotr90(img))
+        makieimg = image!(ax, node)
+        while isopen(cam)
+            read!(cam, img)
+            res, img = markcorners(img; returnimg = true)
+            node[] = rotr90(img)
+            if ispressed(scene, Keyboard.q) == true
+                close(cam)
+                return
+            end 
+            sleep(1 / VideoIO.framerate(cam))
+        end
+        close(cam)
+    catch e
+        try  
+            close(cam)
+        catch e
+            throw(error("Could not close camera camera"))
+        end
+        throw(error("Unable to open webcam"))
+    end
+end
